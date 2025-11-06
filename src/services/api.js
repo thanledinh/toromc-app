@@ -1,4 +1,5 @@
 import { API_ENDPOINTS, API_CONFIG } from '../configs/api'
+import { getCookie, setCookie, removeCookie } from '../utils/cookie'
 
 /**
  * Base API service class
@@ -7,6 +8,36 @@ class ApiService {
   constructor() {
     this.baseURL = API_ENDPOINTS
     this.config = API_CONFIG
+    this.TOKEN_COOKIE_NAME = 'toromc_auth_token'
+  }
+
+  /**
+   * Lấy token từ cookies
+   * @returns {string|null} - Token hoặc null
+   */
+  getToken() {
+    try {
+      return getCookie(this.TOKEN_COOKIE_NAME)
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Lưu token vào cookies
+   * @param {string} token - Token cần lưu
+   * @param {number} days - Số ngày hết hạn (mặc định: 7 ngày)
+   */
+  setToken(token, days = 7) {
+    if (token) {
+      setCookie(this.TOKEN_COOKIE_NAME, token, days, {
+        secure: true,
+        sameSite: 'Strict',
+        path: '/'
+      })
+    } else {
+      removeCookie(this.TOKEN_COOKIE_NAME, { path: '/' })
+    }
   }
 
   /**
@@ -16,13 +47,35 @@ class ApiService {
    * @returns {Promise<any>} - Response data
    */
   async request(url, options = {}) {
+    // Lấy token từ cookies
+    const token = this.getToken()
+    
+    // Tạo headers với token nếu có
+    const headers = {
+      ...this.config.headers,
+      ...options.headers,
+    }
+    
+    // Thêm token vào query string nếu là GET request và có token
+    // Với POST/PUT/DELETE, token sẽ được truyền trong body hoặc headers nếu cần
+    if (token && options.useToken !== false) {
+      const method = options.method || 'GET'
+      // Chỉ thêm token vào query string cho GET request
+      if (method === 'GET') {
+        if (url.includes('?')) {
+          url += `&token=${encodeURIComponent(token)}`
+        } else {
+          url += `?token=${encodeURIComponent(token)}`
+        }
+      }
+      // Có thể thêm vào headers nếu backend yêu cầu
+      // headers['Authorization'] = `Bearer ${token}`
+    }
+
     const config = {
       ...this.config,
       ...options,
-      headers: {
-        ...this.config.headers,
-        ...options.headers,
-      },
+      headers,
     }
 
     try {

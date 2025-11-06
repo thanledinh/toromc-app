@@ -1,14 +1,38 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import { ArrowRightIcon, ArrowLeftIcon } from '../components/icons'
 import { ROUTES } from '../configs/constants'
+import { loginUser, registerUser, clearError, selectAuth } from '../redux/slices/authSlice'
+import { useToast } from '../hooks/useToast'
 
 export default function Auth() {
+  const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
+  const { showToast } = useToast()
+  
+  // Redux state
+  const { isAuthenticated, isLoading, error } = useSelector(selectAuth)
+  
   const urlMode = useMemo(() => new URLSearchParams(location.search).get('mode') || 'login', [location.search])
   const [mode, setMode] = useState(urlMode === 'register' ? 'register' : 'login')
+  
+  // Form states
+  const [loginForm, setLoginForm] = useState({
+    username: '',
+    password: '',
+    rememberMe: false
+  })
+  
+  const [registerForm, setRegisterForm] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  })
 
+  // Effects
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     params.set('mode', mode)
@@ -18,7 +42,97 @@ export default function Auth() {
     }
   }, [mode, location.pathname, location.search])
 
-  const toggleMode = () => setMode((m) => (m === 'login' ? 'register' : 'login'))
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(ROUTES.DASHBOARD)
+      showToast('Đã đăng nhập thành công!', 'success')
+    }
+  }, [isAuthenticated, navigate, showToast])
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'error')
+      dispatch(clearError())
+    }
+  }, [error, showToast, dispatch])
+
+  // Handlers
+  const toggleMode = () => {
+    setMode((m) => (m === 'login' ? 'register' : 'login'))
+    // Reset forms when switching modes
+    setLoginForm({ username: '', password: '', rememberMe: false })
+    setRegisterForm({ username: '', email: '', password: '', confirmPassword: '' })
+  }
+
+  const handleLoginChange = (e) => {
+    const { name, value, type, checked } = e.target
+    setLoginForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }))
+  }
+
+  const handleRegisterChange = (e) => {
+    const { name, value } = e.target
+    setRegisterForm(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    
+    if (!loginForm.username || !loginForm.password) {
+      showToast('Vui lòng điền đầy đủ thông tin', 'warning')
+      return
+    }
+
+    try {
+      await dispatch(loginUser({
+        lastNickname: loginForm.username,
+        password: loginForm.password
+      })).unwrap()
+      
+      showToast('Đăng nhập thành công!', 'success')
+    } catch (error) {
+      // Error handled by useEffect
+    }
+  }
+
+  const handleRegister = async (e) => {
+    e.preventDefault()
+    
+    if (!registerForm.username || !registerForm.email || !registerForm.password || !registerForm.confirmPassword) {
+      showToast('Vui lòng điền đầy đủ thông tin', 'warning')
+      return
+    }
+
+    if (registerForm.password !== registerForm.confirmPassword) {
+      showToast('Mật khẩu xác nhận không khớp', 'error')
+      return
+    }
+
+    if (registerForm.password.length < 6) {
+      showToast('Mật khẩu phải có ít nhất 6 ký tự', 'warning')
+      return
+    }
+
+    try {
+      await dispatch(registerUser({
+        lastNickname: registerForm.username,
+        mailAddress: registerForm.email,
+        password: registerForm.password,
+        premiumId: `premium_${Date.now()}_${registerForm.username}`
+      })).unwrap()
+      
+      showToast('Đăng ký thành công!', 'success')
+    } catch (error) {
+      // Error handled by useEffect
+    }
+  }
 
   return (
     <div className="relative min-h-screen bg-slate-950 text-slate-100">
@@ -109,40 +223,54 @@ export default function Auth() {
                 >
                   <form
                     className="grid gap-5 rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm"
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                    }}
+                    onSubmit={handleLogin}
                   >
                     <div>
                       <label className="text-xs uppercase tracking-[0.3em] text-slate-400">Email hoặc Username</label>
                       <input
                         type="text"
+                        name="username"
+                        value={loginForm.username}
+                        onChange={handleLoginChange}
                         className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60"
                         placeholder="your@email.com"
                         required
+                        disabled={isLoading}
                       />
                     </div>
                     <div>
                       <label className="text-xs uppercase tracking-[0.3em] text-slate-400">Mật khẩu</label>
                       <input
                         type="password"
+                        name="password"
+                        value={loginForm.password}
+                        onChange={handleLoginChange}
                         className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60"
                         placeholder="••••••••"
                         required
+                        disabled={isLoading}
                       />
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <label className="inline-flex items-center gap-2 text-slate-300">
-                        <input type="checkbox" className="h-4 w-4 rounded border-white/20 bg-slate-900/60" />
+                        <input 
+                          type="checkbox" 
+                          name="rememberMe"
+                          checked={loginForm.rememberMe}
+                          onChange={handleLoginChange}
+                          className="h-4 w-4 rounded border-white/20 bg-slate-900/60" 
+                          disabled={isLoading}
+                        />
                         Ghi nhớ đăng nhập
                       </label>
                       <button type="button" className="text-amber-300 hover:text-amber-100">Quên mật khẩu?</button>
                     </div>
                     <button
                       type="submit"
-                    className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl border border-amber-500/50 bg-amber-500/20 px-6 py-3 text-sm font-semibold text-amber-100 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-500/30 hover:text-white"
+                      disabled={isLoading}
+                      className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl border border-amber-500/50 bg-amber-500/20 px-6 py-3 text-sm font-semibold text-amber-100 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-500/30 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Đăng nhập
+                      {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                     </button>
                   </form>
                 </div>
@@ -154,27 +282,33 @@ export default function Auth() {
                 >
                   <form
                     className="grid gap-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm"
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                    }}
+                    onSubmit={handleRegister}
                   >
                     <div className="grid gap-6 md:grid-cols-2">
                       <div>
                         <label className="text-xs uppercase tracking-[0.3em] text-slate-400">Username</label>
                         <input
                           type="text"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60"
+                          name="username"
+                          value={registerForm.username}
+                          onChange={handleRegisterChange}
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60"
                           placeholder="toromc_player"
                           required
+                          disabled={isLoading}
                         />
                       </div>
                       <div>
                         <label className="text-xs uppercase tracking-[0.3em] text-slate-400">Email</label>
                         <input
                           type="email"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60"
+                          name="email"
+                          value={registerForm.email}
+                          onChange={handleRegisterChange}
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60"
                           placeholder="your@email.com"
                           required
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
@@ -183,26 +317,37 @@ export default function Auth() {
                         <label className="text-xs uppercase tracking-[0.3em] text-slate-400">Mật khẩu</label>
                         <input
                           type="password"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60"
+                          name="password"
+                          value={registerForm.password}
+                          onChange={handleRegisterChange}
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60"
                           placeholder="••••••••"
                           required
+                          minLength={6}
+                          disabled={isLoading}
                         />
                       </div>
                       <div>
                         <label className="text-xs uppercase tracking-[0.3em] text-slate-400">Xác nhận mật khẩu</label>
                         <input
                           type="password"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60"
+                          name="confirmPassword"
+                          value={registerForm.confirmPassword}
+                          onChange={handleRegisterChange}
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60"
                           placeholder="••••••••"
                           required
+                          minLength={6}
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
                     <button
                       type="submit"
-                      className="group relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border border-amber-500/50 bg-amber-500/20 px-6 py-3 text-sm font-semibold text-amber-100 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-500/30 hover:text-white md:w-auto"
+                      disabled={isLoading}
+                      className="group relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border border-amber-500/50 bg-amber-500/20 px-6 py-3 text-sm font-semibold text-amber-100 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-500/30 hover:text-white md:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Tạo tài khoản
+                      {isLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
                     </button>
                   </form>
                 </div>

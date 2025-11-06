@@ -1,6 +1,7 @@
 // Route paths
 export const ROUTES = {
   HOME: '/',
+  AUTH: '/auth',
   DASHBOARD: '/dashboard',
   LOGIN: '/login',
   REGISTER: '/register',
