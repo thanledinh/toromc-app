@@ -1,111 +1,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import './App.css'
+import './assets/styles/App.css'
 import {
   fetchHomepage,
   selectHomepageData,
   selectHomepageError,
   selectHomepageStatus,
-} from './features/homepage/homepageSlice'
-import {
   fetchSettings,
   selectHomepageSettings,
   selectHomepageSettingsStatus,
-} from './features/homepage/homepageSlice'
+} from './redux/slices/homepageSlice'
+import { 
+  MenuIcon,
+  CloseIcon, 
+  ArrowRightIcon,
+  CopyIcon,
+  CheckIcon,
+  AlertIcon,
+  DiscordIcon,
+  SparkIcon,
+  LightningIcon,
+  ChevronDownIcon
+} from './components/icons'
+import { AnimatedCounter, Toast } from './components/ui'
+import { useProcessedLogo, useToast } from './hooks'
+import { copyToClipboard, scrollToElement, updateFavicon } from './utils'
+import { ANIMATION, UI, ROUTES } from './configs/constants'
 
-const MenuIcon = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M4 7h16M4 12h16M4 17h16" />
-  </svg>
-)
 
-const CloseIcon = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="m6 6 12 12M18 6 6 18" />
-  </svg>
-)
-
-const ArrowRightIcon = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M5 12h14m-6-6 6 6-6 6" />
-  </svg>
-)
-
-const CopyIcon = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-    <rect width="10" height="14" x="9" y="7" rx="2" ry="2" />
-    <path strokeWidth="1.6" d="M5 11V5a2 2 0 0 1 2-2h8" />
-  </svg>
-)
-
-const CheckIcon = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="m5 13 4 4L19 7" />
-  </svg>
-)
-
-const AlertIcon = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
-  </svg>
-)
-
-const DiscordIcon = (props) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M20.222 4.205A16.364 16.364 0 0 0 15.892 3L15.6 3.564a15.325 15.325 0 0 1 3.776.957 13.24 13.24 0 0 1 3.157 2.02c-1.332-.698-2.664-1.195-3.996-1.492a10.664 10.664 0 0 0-4.047-.1.35.35 0 0 0-.297.252 14.04 14.04 0 0 0-.236.78 15.52 15.52 0 0 0-4.632 0 12.54 12.54 0 0 0-.25-.78.323.323 0 0 0-.297-.252 10.61 10.61 0 0 0-4.05.1c-1.332.297-2.664.794-3.996 1.492A13.4 13.4 0 0 1 4.4 4.52 14.994 14.994 0 0 1 8.11 3l-.39-.59a16.393 16.393 0 0 0-4.33 1.205C1.448 4.484.5 7.422.5 10.553S1.448 16.62 4.025 18.9a16.045 16.045 0 0 0 4.935 2.547l.355-.61a10.98 10.98 0 0 1-3.052-1.31l.389-.296A11.368 11.368 0 0 0 8.4 19.5a11.45 11.45 0 0 0 2.281.311h2.638a11.45 11.45 0 0 0 2.282-.311c.81-.178 1.575-.474 2.284-.889l.39.296a11.03 11.03 0 0 1-3.06 1.32l.355.609a16.03 16.03 0 0 0 4.935-2.547c2.577-2.28 3.525-5.218 3.525-8.349s-.948-7.02-3.525-9.3ZM8.995 15.091c-.894 0-1.621-.811-1.621-1.807 0-.997.709-1.807 1.621-1.807.913 0 1.64.81 1.63 1.807 0 .996-.717 1.807-1.63 1.807Zm6.03 0c-.894 0-1.621-.811-1.621-1.807 0-.997.717-1.807 1.621-1.807.913 0 1.64.81 1.64 1.807 0 .996-.727 1.807-1.64 1.807Z" />
-  </svg>
-)
-
-const SparkIcon = (props) => (
-  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.4" d="m10 1 1.7 4.6 4.3 1L11.9 9.9l.9 4.5L10 11.8 7.2 14.4l.9-4.5-4.1-3.3 4.3-1L10 1Z" />
-  </svg>
-)
-
-const LightningIcon = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
-  </svg>
-)
-
-const ChevronDownIcon = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="m6 9 6 6 6-6" />
-  </svg>
-)
-
-const AnimatedCounter = ({ value, prefix = '', suffix = '', duration = 1400, className = 'text-3xl font-semibold text-white' }) => {
-  const [displayValue, setDisplayValue] = useState(0)
-
-  useEffect(() => {
-    let start = null
-    let animationFrame = 0
-    const target = Number.isFinite(Number(value)) ? Number(value) : 0
-
-    const step = (timestamp) => {
-      if (!start) {
-        start = timestamp
-      }
-      const progress = Math.min((timestamp - start) / duration, 1)
-      const current = Math.round(target * progress)
-      setDisplayValue(current > target ? target : current)
-      if (progress < 1) {
-        animationFrame = window.requestAnimationFrame(step)
-      }
-    }
-
-    animationFrame = window.requestAnimationFrame(step)
-
-    return () => {
-      window.cancelAnimationFrame(animationFrame)
-    }
-  }, [value, duration])
-
-  const formatted = displayValue.toLocaleString('vi-VN')
-
-  return <span className={className}>{`${prefix}${formatted}${suffix}`}</span>
-}
 
 function App() {
   const dispatch = useDispatch()
@@ -131,7 +54,7 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('home')
   const [isScrolled, setIsScrolled] = useState(false)
-  const [toast, setToast] = useState(null)
+  const { toast, showToast } = useToast()
   const [copiedTarget, setCopiedTarget] = useState('')
   const [activeMode, setActiveMode] = useState(0)
   const [openFaq, setOpenFaq] = useState(null)
@@ -159,7 +82,7 @@ function App() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 32)
+      setIsScrolled(window.scrollY > UI.SCROLL_THRESHOLD)
     }
     handleScroll()
     window.addEventListener('scroll', handleScroll)
@@ -188,8 +111,8 @@ function App() {
         })
       },
       {
-        threshold: 0.45,
-        rootMargin: '-15% 0px -35% 0px',
+        threshold: UI.INTERSECTION_THRESHOLD,
+        rootMargin: UI.INTERSECTION_ROOT_MARGIN,
       },
     )
 
@@ -227,18 +150,11 @@ function App() {
         }
         return (prev + 1) % modes.length
       })
-    }, 6000)
+    }, ANIMATION.MODE_SWITCH_DURATION)
 
     return () => window.clearInterval(timer)
   }, [modes.length])
 
-  useEffect(() => {
-    if (!toast) {
-      return undefined
-    }
-    const timer = window.setTimeout(() => setToast(null), 2400)
-    return () => window.clearTimeout(timer)
-  }, [toast])
 
   useEffect(
     () => () => {
@@ -252,122 +168,35 @@ function App() {
   const activeModeData = modes.length ? modes[Math.min(activeMode, modes.length - 1)] : null
 
   const handleNavClick = (anchorId) => {
-    if (!anchorId) {
-      return
-    }
+    if (!anchorId) return
     setIsMenuOpen(false)
-    const element = document.getElementById(anchorId)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
+    scrollToElement(anchorId)
   }
 
   const handleCopy = async (item) => {
-    if (!item || !item.value) {
-      return
-    }
+    if (!item || !item.value) return
 
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(item.value)
-      } else {
-        const textArea = document.createElement('textarea')
-        textArea.value = item.value
-        textArea.style.position = 'fixed'
-        textArea.style.opacity = '0'
-        document.body.appendChild(textArea)
-        textArea.focus()
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
-      }
-
+    const success = await copyToClipboard(item.value)
+    
+    if (success) {
       setCopiedTarget(item.value)
-      setToast({ message: `${item.label}: Đã copy IP`, tone: 'success' })
+      showToast(`${item.label}: Đã copy IP`, 'success')
 
       if (copyTimeoutRef.current) {
         window.clearTimeout(copyTimeoutRef.current)
       }
       copyTimeoutRef.current = window.setTimeout(() => setCopiedTarget(''), 2000)
-    } catch (copyError) {
-      setToast({ message: 'Không thể copy IP, vui lòng thử lại.', tone: 'error' })
+    } else {
+      showToast('Không thể copy IP, vui lòng thử lại.', 'error')
     }
-  }
-  const useProcessedLogo = (url) => {
-    const [processed, setProcessed] = useState('')
-
-    useEffect(() => {
-      if (!url) {
-        setProcessed('')
-        return
-      }
-      let cancelled = false
-
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => {
-        try {
-          const maxSize = 192
-          const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
-          const w = Math.max(1, Math.round(img.width * scale))
-          const h = Math.max(1, Math.round(img.height * scale))
-          const canvas = document.createElement('canvas')
-          canvas.width = w
-          canvas.height = h
-          const ctx = canvas.getContext('2d')
-          ctx.drawImage(img, 0, 0, w, h)
-          const imageData = ctx.getImageData(0, 0, w, h)
-          const data = imageData.data
-          // Lấy màu nền ở góc trên trái làm key
-          const keyR = data[0], keyG = data[1], keyB = data[2]
-          const threshold = 45
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i]
-            const g = data[i + 1]
-            const b = data[i + 2]
-            const dr = r - keyR
-            const dg = g - keyG
-            const db = b - keyB
-            const dist = Math.sqrt(dr * dr + dg * dg + db * db)
-            if (dist <= threshold) {
-              data[i + 3] = 0 // alpha = 0
-            }
-          }
-          ctx.putImageData(imageData, 0, 0)
-          const dataUrl = canvas.toDataURL('image/png')
-          if (!cancelled) {
-            setProcessed(dataUrl)
-          }
-        } catch (_) {
-          if (!cancelled) {
-            setProcessed('')
-          }
-        }
-      }
-      img.onerror = () => setProcessed('')
-      img.src = url
-
-      return () => {
-        cancelled = true
-      }
-    }, [url])
-
-    return processed || url || ''
   }
 
   const logoSrc = useProcessedLogo(settings.logoUrl)
 
   useEffect(() => {
-    if (!logoSrc) return
-    // Cập nhật favicon động
-    let link = document.querySelector("link[rel='icon']")
-    if (!link) {
-      link = document.createElement('link')
-      link.rel = 'icon'
-      document.head.appendChild(link)
+    if (logoSrc) {
+      updateFavicon(logoSrc)
     }
-    link.type = 'image/png'
-    link.href = logoSrc
   }, [logoSrc])
 
   const toggleFaq = (id) => {
@@ -454,7 +283,7 @@ function App() {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate(ROUTES.LOGIN)}
               className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-amber-400/60 bg-amber-500/20 px-5 py-2 text-sm font-semibold text-amber-100 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-500/30 hover:text-white"
             >
               <span
@@ -519,7 +348,7 @@ function App() {
                   type="button"
                   onClick={() => {
                     setIsMenuOpen(false)
-                    navigate('/login')
+                    navigate(ROUTES.LOGIN)
                   }}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-400/60 bg-amber-500/20 px-4 py-3 text-sm font-semibold text-amber-100 transition hover:border-amber-300 hover:bg-amber-500/30 hover:text-white"
                 >
@@ -532,24 +361,7 @@ function App() {
         )}
       </header>
 
-      {toast && (
-        <div className="fixed right-6 top-24 z-[60]">
-          <div
-            className={`pointer-events-auto flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur ${
-              toast.tone === 'success'
-                ? 'border-amber-400/50 bg-amber-500/15 text-amber-100'
-                : 'border-rose-400/50 bg-rose-500/10 text-rose-100'
-            }`}
-          >
-            {toast.tone === 'success' ? (
-              <CheckIcon className="h-4 w-4" />
-            ) : (
-              <AlertIcon className="h-4 w-4" />
-            )}
-            <span>{toast.message}</span>
-          </div>
-        </div>
-      )}
+      <Toast toast={toast} />
 
       <main className="relative pt-28">
         <section id="home" data-section className="relative px-6 pb-24">

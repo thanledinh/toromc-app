@@ -1,17 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-
-const ArrowRightIcon = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M5 12h14m-6-6 6 6-6 6" />
-  </svg>
-)
-
-const ArrowLeftIcon = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M19 12H5m6 6-6-6 6-6" />
-  </svg>
-)
+import { ArrowRightIcon, ArrowLeftIcon } from '../components/icons'
+import { ROUTES } from '../configs/constants'
 
 export default function Auth() {
   const navigate = useNavigate()
@@ -53,7 +43,7 @@ export default function Auth() {
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6 py-12">
         <div className="mb-8 flex w-full items-center justify-between">
           <Link
-            to="/"
+            to={ROUTES.HOME}
             className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-100 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-500/20 hover:text-white"
           >
             <span
@@ -222,7 +212,7 @@ export default function Auth() {
                 <span>Bằng việc tiếp tục, bạn đồng ý với điều khoản của ToroMC.</span>
                 <button
                   type="button"
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate(ROUTES.HOME)}
                   className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/10 hover:text-white"
                 >
                   Về trang chủ
