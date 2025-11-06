@@ -10,4 +10,7 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    sourcemap: false, // Tắt source map để bảo mật code
+  },
 })
